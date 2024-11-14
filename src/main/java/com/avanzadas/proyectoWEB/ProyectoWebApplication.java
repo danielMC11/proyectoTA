@@ -15,8 +15,8 @@ public class ProyectoWebApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(ProyectoWebApplication.class, args);
 
-		GrabacionService grabacionService = new GrabacionServiceImpl(new GrabacionRepositoryImpl());
-		grabacionService.guardarVideos();
+		//GrabacionService grabacionService = new GrabacionServiceImpl(new GrabacionRepositoryImpl());
+		//grabacionService.guardarVideos();
 
 	}
 
