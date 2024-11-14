@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Registro de Usuario</title>
+	<!-- Enlazamos el CSS de Bootstrap -->
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-5">
+	<h2>Registro de Usuario</h2>
+	<form action="#" th:action="@{/usuario/registrar}" th:object="${usuario}" method="post">
+		<!-- Campo de Nombre -->
+		<div class="mb-3">
+			<label for="nombre" class="form-label">Nombre</label>
+			<input type="text" class="form-control" id="nombre" th:field="*{nombre}" placeholder="Ingresa tu nombre" required>
+		</div>
+
+		<!-- Campo de Apellido -->
+		<div class="mb-3">
+			<label for="apellido" class="form-label">Apellido</label>
+			<input type="text" class="form-control" id="apellido" th:field="*{apellido}" placeholder="Ingresa tu apellido" required>
+		</div>
+
+		<!-- Campo de Email -->
+		<div class="mb-3">
+			<label for="email" class="form-label">Correo Electrónico</label>
+			<input type="email" class="form-control" id="email" th:field="*{email}" placeholder="Ingresa tu correo electrónico" required>
+		</div>
+
+		<!-- Campo de Dirección IP -->
+		<div class="mb-3">
+			<label for="direccionIp" class="form-label">Dirección IP</label>
+			<input type="text" class="form-control" id="direccionIp" th:field="*{direccionIp}" placeholder="Ingresa tu dirección IP" required>
+		</div>
+
+		<!-- Botón de Enviar -->
+		<button type="submit" class="btn btn-primary">Registrarse</button>
+	</form>
+</div>
+
+<!-- Enlazamos los scripts de Bootstrap -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
