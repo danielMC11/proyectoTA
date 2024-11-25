@@ -35,4 +35,6 @@ public class UsuarioController {
 	public String usuarioRegistrado(){
 		return "confirmacion";
 	}
+
+
 }

@@ -1,5 +1,6 @@
 package com.avanzadas.proyectoWEB.controller;
 
+import com.avanzadas.proyectoWEB.entity.Grabacion;
 import com.avanzadas.proyectoWEB.service.GrabacionService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -13,7 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 
 @Controller
-@RequestMapping("/admin/")
+@RequestMapping("/grabacion/")
 public class GrabacionController {
 
 	GrabacionService grabacionService;
@@ -22,27 +23,12 @@ public class GrabacionController {
 	}
 
 
+	@GetMapping("ver-todos")
+	public String listarGrabaciones(Model model) {
+		List<Grabacion> grabaciones = grabacionService.listarGrabaciones();
 
-	@GetMapping("ver-video")
-	public String mostrarVideo(Model model) {
-		List<String> videosId = grabacionService.listarGrabaciones();
-
-		System.err.println("IDS" + videosId);
-
-		model.addAttribute("videosList", videosId);
-		return "videos";
+		model.addAttribute("grabacionesList", grabaciones);
+		return "grabaciones";
 	}
-
-	@GetMapping("/video/{id}")
-	public ResponseEntity<InputStreamResource> obtenerVideo(@PathVariable String id){
-
-		return ResponseEntity.ok()
-			.header(HttpHeaders.CONTENT_DISPOSITION, "inline")
-			.contentType(MediaType.parseMediaType("video/mp4"))
-			.body(new InputStreamResource(grabacionService.buscarGrabacion(id)));
-
-	}
-
-
 
 }

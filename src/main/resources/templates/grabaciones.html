@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!-- Incluir Bootstrap CSS -->
+	<link th:href="@{/css/bootstrap.min.css}" rel="stylesheet">
+	<style>
+		.video-fixed {
+				width: 320px; /* Ancho fijo */
+				height: 240px; /* Alto fijo */
+				object-fit: cover; /* Ajusta el contenido dentro del área fija */
+				margin: auto; /* Centra el video dentro de la tarjeta */
+		}
+	</style>
+</head>
+<body>
+<!-- Barra de navegación -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+	<div class="container-fluid">
+		<a class="navbar-brand" href="#">Registro de Grabaciones</a>
+		<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navbarNav">
+			<ul class="navbar-nav">
+				<li class="nav-item">
+					<a class="nav-link active" aria-current="page" href="#">Inicio</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" href="#">Grabaciones</a>
+				</li>
+			</ul>
+		</div>
+	</div>
+</nav>
+
+<!-- Contenido principal -->
+<div class="container my-4">
+	<h1 class="text-center mb-4">Registro de Grabaciones</h1>
+
+	<!-- Lista de grabaciones -->
+	<div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
+		<div class="col" th:each="grabacion : ${grabacionesList}">
+			<div class="card h-100 text-center">
+				<video class="video-fixed card-img-top" th:src="@{'/api/grabacion/ver/' + ${grabacion.grabacionId}}" controls>
+					Tu navegador no soporta el elemento de video.
+				</video>
+				<div class="card-body">
+					<h5 class="card-title" th:text="${grabacion.usuario.nombre}"></h5>
+					<p class="card-text text-muted">
+						<i class="bi bi-calendar3"></i>
+						<span th:text="${#temporals.format(grabacion.fechaYhora, 'dd-MM-yyyy HH:mm')}"></span>
+					</p>
+				</div>
+				<div class="card-footer">
+					<a href="#" class="btn btn-primary">Ver más</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Footer -->
+<footer class="bg-primary text-white text-center py-3">
+	<p class="mb-0">© 2024 Registro de Grabaciones</p>
+</footer>
+
+<!-- Incluir Bootstrap Bundle JS -->
+<script th:src="@{/js/bootstrap.bundle.min.js}"></script>
+</body>
+</html>

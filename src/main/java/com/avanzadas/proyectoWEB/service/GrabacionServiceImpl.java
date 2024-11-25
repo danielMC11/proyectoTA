@@ -1,7 +1,10 @@
 package com.avanzadas.proyectoWEB.service;
 
+import com.avanzadas.proyectoWEB.entity.Grabacion;
+import com.avanzadas.proyectoWEB.entity.Usuario;
 import com.avanzadas.proyectoWEB.repository.GrabacionRepository;
 
+import com.avanzadas.proyectoWEB.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -12,27 +15,33 @@ import java.util.List;
 public class GrabacionServiceImpl implements GrabacionService{
 
 	GrabacionRepository grabacionRepository;
-	public GrabacionServiceImpl(GrabacionRepository grabacionRepository){
+	UsuarioRepository usuarioRepository;
+	public GrabacionServiceImpl(GrabacionRepository grabacionRepository, UsuarioRepository usuarioRepository){
 		this.grabacionRepository = grabacionRepository;
+		this.usuarioRepository = usuarioRepository;
 	}
 
 	@Override
-	public void guardarFrame(int userId, byte[] imagenData){
+	public void guardarFrame(Long userId, byte[] imagenData){
 		grabacionRepository.guardarFrame(userId, imagenData);
 	}
 
 	@Override
-	public void guardarVideos() {
+	public void guardarGrabaciones() {
 
-		for(int i =1;i<3;i++) {
-			List<byte[]> frames = grabacionRepository.obtenerFramesTemporales(i);
+		for(Usuario usuario : usuarioRepository.buscarTodos()) {
 
+			List<byte[]> frames = grabacionRepository.obtenerFramesTemporales(usuario.getId());
+
+			if (!frames.isEmpty()){
 			try {
 				Path videoTemp = grabacionRepository.crearVideoTemporalConFrames(frames, 10);
-				grabacionRepository.guardarVideo(videoTemp);
+				grabacionRepository.guardarGrabacion(videoTemp, usuario);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+			}
+
 		}
 
 		grabacionRepository.eliminarFramesTemporales();
@@ -45,7 +54,7 @@ public class GrabacionServiceImpl implements GrabacionService{
 	}
 
 	@Override
-	public List<String> listarGrabaciones() {
+	public List<Grabacion> listarGrabaciones() {
 		return grabacionRepository.buscarTodos();
 	}
 }

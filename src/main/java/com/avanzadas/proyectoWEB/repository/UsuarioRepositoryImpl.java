@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -40,17 +42,52 @@ public class UsuarioRepositoryImpl implements UsuarioRepository{
 	}
 
 	@Override
-	public Usuario buscarPorId(Integer id) {
-		return null;
-	}
-
-	@Override
 	public List<Usuario> buscarTodos() {
-		return null;
+		List<Usuario> usuarios = new ArrayList<>();
+		try (Connection conn = (Connection) adaptadorBaseDatos.obtenerConexion();
+				 PreparedStatement pstmt = conn.prepareStatement(
+					 "SELECT * FROM Usuario");
+		)
+		{
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				Usuario usuario = new Usuario();
+				usuario.setId(rs.getLong("id"));
+				usuario.setNombre(rs.getString("nombre"));
+				usuario.setApellido(rs.getString("apellido"));
+				usuario.setEmail(rs.getString("email"));
+				usuarios.add(usuario);
+			}
+		}catch (Exception e){
+			e.printStackTrace();
+		}
+		return usuarios;
 	}
 
 	@Override
-	public void eliminarPorId(Integer id) {
+	public Usuario buscarPorId(Long id) {
+		Usuario usuario = new Usuario();
+		try (Connection conn = (Connection) adaptadorBaseDatos.obtenerConexion();
+				 PreparedStatement pstmt = conn.prepareStatement(
+					 "SELECT * FROM Usuario where id = ? ");
+		)
+		{
+			pstmt.setLong(1, id);
+			ResultSet rs = pstmt.executeQuery();
+
+			if(rs.next()){
+				usuario.setNombre(rs.getString("nombre"));
+				usuario.setApellido(rs.getString("apellido"));
+				usuario.setEmail(rs.getString("email"));
+				usuario.setDireccionIp(rs.getString("direccionIp"));
+			}
+
+		}catch (Exception e){
+			e.printStackTrace();
+		}
+		return usuario;
+
+
 
 	}
 }

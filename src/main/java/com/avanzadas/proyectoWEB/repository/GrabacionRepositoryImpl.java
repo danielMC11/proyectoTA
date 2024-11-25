@@ -2,6 +2,8 @@ package com.avanzadas.proyectoWEB.repository;
 
 import com.avanzadas.proyectoWEB.adaptadores.AdaptadorBaseDatos;
 import com.avanzadas.proyectoWEB.adaptadores.implementacion.MongoAdaptadorBaseDatos;
+import com.avanzadas.proyectoWEB.entity.Grabacion;
+import com.avanzadas.proyectoWEB.entity.Usuario;
 import com.avanzadas.proyectoWEB.fabricas.baseDeDatos.FabricaBaseDeDatos;
 import com.avanzadas.proyectoWEB.fabricas.baseDeDatos.Persistencia;
 import com.mongodb.client.MongoClient;
@@ -25,13 +27,16 @@ import org.jcodec.common.model.Rational;
 import org.springframework.stereotype.Repository;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
+
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 
 
@@ -44,13 +49,15 @@ import static com.mongodb.client.model.Filters.eq;
 @Repository
 public class GrabacionRepositoryImpl implements GrabacionRepository{
 	private AdaptadorBaseDatos adaptadorBaseDatos;
+	private UsuarioRepository usuarioRepository;
 
-	public GrabacionRepositoryImpl(){
+	public GrabacionRepositoryImpl(UsuarioRepository usuarioRepository){
 		adaptadorBaseDatos = FabricaBaseDeDatos.obtenerInstancia().obtenerAdaptador(Persistencia.MONGODB);
+		this.usuarioRepository = usuarioRepository;
 	}
 
 	@Override
-	public void guardarFrame(int userId, byte[] imagenData) {
+	public void guardarFrame(Long userId, byte[] imagenData) {
 		try (MongoClient conn = (MongoClient) adaptadorBaseDatos.obtenerConexion()) {
 
 			MongoDatabase database = conn.getDatabase(adaptadorBaseDatos.getDbname());
@@ -70,7 +77,7 @@ public class GrabacionRepositoryImpl implements GrabacionRepository{
 
 
 	@Override
-	public List<byte[]> obtenerFramesTemporales(int userId){
+	public List<byte[]> obtenerFramesTemporales(Long userId){
 		List<byte[]> frames = new ArrayList<>();
 
 		try (MongoClient conn = (MongoClient) adaptadorBaseDatos.obtenerConexion()) {
@@ -79,6 +86,10 @@ public class GrabacionRepositoryImpl implements GrabacionRepository{
 
 			// Consulta los documentos de la colección frames con el userId especificado
 			List<Document> documents = framesCollection.find(new Document("userId", userId)).into(new ArrayList<>());
+
+			if (documents.isEmpty()) {
+				return frames; // Retorna una lista vacía si no hay coincidencias
+			}
 
 			// Procesa cada documento
 			for (Document doc : documents) {
@@ -126,28 +137,34 @@ public class GrabacionRepositoryImpl implements GrabacionRepository{
 	}
 
 	@Override
-	public void guardarVideo(Path rutaVideo) {
-		try(
+	public void guardarGrabacion(Path rutaVideo, Usuario usuario) {
+		try (
 			MongoClient conn = (MongoClient) adaptadorBaseDatos.obtenerConexion();
 		) {
-
-			MongoDatabase database =  conn.getDatabase(adaptadorBaseDatos.getDbname());
+			// Obtener la base de datos y configurar GridFS
+			MongoDatabase database = conn.getDatabase(adaptadorBaseDatos.getDbname());
 			GridFSBucket gridFSBucket = GridFSBuckets.create(database, "videos");
 
 			File videoFile = new File(rutaVideo.toString());
 			try (FileInputStream streamToUploadFrom = new FileInputStream(videoFile)) {
+				// Configurar los metadatos del archivo con el ID de usuario
 				GridFSUploadOptions options = new GridFSUploadOptions()
 					.chunkSizeBytes(1024 * 1024) // Tamaño de los chunks
-					.metadata(new org.bson.Document("type", "video"));
+					.metadata(new Document("type", "video")
+						.append("userId", usuario.getId()) // Asociar el ID del usuario
 
-				gridFSBucket.uploadFromStream("", streamToUploadFrom, options);
+					);
+
+				// Subir el archivo al bucket con un nombre basado en el ID de usuario
+				gridFSBucket.uploadFromStream(usuario.getId() + "_video", streamToUploadFrom, options);
 			}
 
-			if (Files.exists(rutaVideo))
-					Files.delete(rutaVideo);
+			// Eliminar el archivo local después de la carga
+			if (Files.exists(rutaVideo)) {
+				Files.delete(rutaVideo);
+			}
 
-
-		}catch (Exception e){
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -166,8 +183,56 @@ public class GrabacionRepositoryImpl implements GrabacionRepository{
 		}
 	}
 
+
+	@Override
+	public List<Grabacion> buscarTodos() {
+		List<Grabacion> grabaciones = new ArrayList<>();
+		try(
+			MongoClient conn =  (MongoClient) adaptadorBaseDatos.obtenerConexion();
+		) {
+			MongoDatabase database =  conn.getDatabase(adaptadorBaseDatos.getDbname());
+			GridFSBucket gridFSBucket = GridFSBuckets.create(database, "videos");
+
+			MongoCursor<GridFSFile> filesCursor = gridFSBucket.find().iterator();
+
+			while (filesCursor.hasNext()) {
+				GridFSFile gridFSFile = filesCursor.next();
+				Grabacion grabacion = new Grabacion();
+
+				Document metadata = gridFSFile.getMetadata();
+
+				Long userId = metadata.getLong("userId");
+				grabacion.setGrabacionId(gridFSFile.getObjectId().toHexString());
+				grabacion.setUsuario(usuarioRepository.buscarPorId(userId));
+				Date uploadDate = gridFSFile.getUploadDate(); // Devuelve un objeto Date (en UTC)
+
+				// Convertir Date a ZonedDateTime en UTC
+				ZonedDateTime uploadDateUTC = uploadDate.toInstant().atZone(ZoneId.of("UTC"));
+
+				// Definir la zona horaria de Bogotá
+				ZoneId bogotaZone = ZoneId.of("America/Bogota");
+
+				// Convertir la fecha a la zona horaria de Bogotá
+				ZonedDateTime uploadDateBogota = uploadDateUTC.withZoneSameInstant(bogotaZone);
+
+				// Convertir ZonedDateTime a LocalDateTime (sin zona horaria)
+				LocalDateTime uploadDateLocal = uploadDateBogota.toLocalDateTime();
+				grabacion.setFechaYhora(uploadDateLocal);
+				grabaciones.add(grabacion);
+
+			}
+			filesCursor.close();
+
+		}catch (Exception e){
+			e.printStackTrace();
+		}
+		return grabaciones;
+	}
+
+
 	@Override
 	public ByteArrayInputStream buscarPorId(String id) {
+
 		ByteArrayInputStream inputStream = null;
 		try (
 			MongoClient conn = (MongoClient) adaptadorBaseDatos.obtenerConexion();
@@ -182,29 +247,11 @@ public class GrabacionRepositoryImpl implements GrabacionRepository{
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
 		return inputStream;
 	}
 
-	@Override
-	public List<String> buscarTodos() {
-		List<String> videosId = new ArrayList<>();
-		try(
-			MongoClient conn =  (MongoClient) adaptadorBaseDatos.obtenerConexion();
-		) {
-			MongoDatabase database =  conn.getDatabase(adaptadorBaseDatos.getDbname());
-			GridFSBucket gridFSBucket = GridFSBuckets.create(database, "videos");
 
-			MongoCursor<GridFSFile> filesCursor = gridFSBucket.find().iterator();
 
-			while (filesCursor.hasNext()) {
-				GridFSFile gridFSFile = filesCursor.next();
-				videosId.add(gridFSFile.getObjectId().toHexString());
-			}
-			filesCursor.close();
 
-		}catch (Exception e){
-			e.printStackTrace();
-		}
-		return videosId;
-	}
 }
