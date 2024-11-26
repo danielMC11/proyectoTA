@@ -29,6 +29,8 @@ public class GrabacionServiceImpl implements GrabacionService{
 	@Override
 	public void guardarGrabaciones() {
 
+		System.err.println("GUARDANDO.....");
+
 		for(Usuario usuario : usuarioRepository.buscarTodos()) {
 
 			List<byte[]> frames = grabacionRepository.obtenerFramesTemporales(usuario.getId());
